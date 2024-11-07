@@ -20,15 +20,19 @@
     <script id="vertexShaderCode" type="notjs">
         attribute vec3 aPosition;
         attribute vec3 aColor;
+        attribute vec3 aNormal; // Add this line
         uniform mat4 uMatrix;
         uniform mat4 uProj;
         uniform mat4 uView;
         uniform mat4 uModel;
         varying vec3 vColor;
+        varying vec3 vNormal; // Add this line
         void main(){
             vColor = aColor;
-            gl_Position = uProj*uView*uModel*vec4(aPosition, 1.0);
+            vNormal = mat3(uModel) * aNormal; // Add this line
+            gl_Position = uProj * uView * uModel * vec4(aPosition, 1.0);
         }
     </script>
+    
 </body>
 </html>

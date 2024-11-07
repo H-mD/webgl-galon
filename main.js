@@ -21,12 +21,23 @@ function main(){
     gl.compileShader(vertexShader);
 
     var fragmentShaderCode = `
-        precision mediump float;
-        varying vec3 vColor;
-        void main(){
-            gl_FragColor = vec4(vColor, 1.0);
-        }
-    `;
+    precision mediump float;
+    varying vec3 vColor;
+    varying vec3 vNormal;
+    uniform vec3 uLightDirection;
+    uniform vec3 uViewDirection; // Add this line
+    void main(){
+        vec3 normal = normalize(vNormal);
+        float light = max(dot(normal, normalize(uLightDirection)), 0.0);
+        
+        // Specular reflection
+        vec3 reflectDir = reflect(-uLightDirection, normal);
+        float spec = pow(max(dot(reflectDir, normalize(uViewDirection)), 0.0), 16.0); // 16 is the shininess factor
+        
+        vec3 color = vColor * light + vec3(1.0) * spec; // Add specular highlight
+        gl_FragColor = vec4(color, 0.8); // Adjust alpha for slight transparency
+    }
+`;
 
     var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
     gl.shaderSource(fragmentShader, fragmentShaderCode);
@@ -48,6 +59,25 @@ function main(){
     gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(aColor);
 
+    // Add after color buffer setup
+    var normalBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+
+    // Bind normals
+    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+    var aNormal = gl.getAttribLocation(program, "aNormal");
+    gl.vertexAttribPointer(aNormal, 3, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(aNormal);
+
+    // Set light direction
+    var lightDirection = gl.getUniformLocation(program, "uLightDirection");
+    gl.uniform3fv(lightDirection, [0.5, 0.7, 1.0]); // Example light direction
+
+    // Set view direction
+    var viewDirection = gl.getUniformLocation(program, "uViewDirection");
+    gl.uniform3fv(viewDirection, [0.0, 0.0, 1.0]); // Example view direction
+
     var Pmatrix = gl.getUniformLocation(program, "uProj");
     var Vmatrix = gl.getUniformLocation(program, "uView");
     var Mmatrix = gl.getUniformLocation(program, "uModel");
@@ -66,7 +96,7 @@ function main(){
 
     glMatrix.mat4.lookAt(viewMatrix,
         [0.0, 1.0, 4.0], //posisi kamera
-        [0.0, 2.0, -2.0], //kemana kamera menghadap
+        [0.0, 0.0, -2.0], //kemana kamera menghadap
         [0.0, 1.0, 0.0] //kemana arah atas kamera
     );
 
